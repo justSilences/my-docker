@@ -1,0 +1,57 @@
+version: '3'
+
+networks:
+  backend:
+    driver: bridge
+
+services:
+  php-fpm:
+    image: pengpeng/myphp-fpm:1.2
+    # build:
+    #   context: ./php-fpm
+    #   args:
+    #     - LARADOCK_PHP_VERSION=7.1
+    #     - INSTALL_INTL=true
+    #     - INSTALL_SSH2=true
+    #     - INSTALL_SOAP=true
+    #     - INSTALL_AMQP=true
+    #     - INSTALL_XSL=true
+    #     - INSTALL_GMP=true
+    #     - INSTALL_BCMATH=true
+    #     - INSTALL_PHPREDIS=true
+    #     - INSTALL_MYSQLI=true
+    #     - INSTALL_SWOOLE=true
+    #     - INSTALL_SEASLOG=true
+    #     - INSTALL_IMAGEMAGICK=true
+    #     - INSTALL_IMAGE_OPTIMIZERS=true
+    #     - INSTALL_IONCUBE=true
+    #     - ADDITIONAL_LOCALES="es_ES.UTF-8 fr_FR.UTF-8"
+    volumes:
+      - ./php-fpm/php.ini:/usr/local/etc/php/php.ini
+      - ${APP_CODE_PATH_HOST}:/var/www
+      - ./logs/php-fpm:/var/log/www
+    expose:
+      - "9000"
+    networks:
+      - backend
+
+  nginx:
+    image: harbor.youhaodongxi.com/php/sht-dev-nginx:0.1
+    volumes: 
+      - ${APP_CODE_PATH_HOST}:/var/www
+      - ./logs/nginx/:/var/log/nginx
+      - ./sites/:/etc/nginx/sites-available
+    ports:
+      - 80:80
+      - 443:443
+    depends_on:
+      - php-fpm
+    networks:
+      - backend
+
+  redis:
+      image: redis:latest
+      ports:
+        - "6379:6379"
+      networks:
+        - backend

@@ -1,57 +1,44 @@
 version: '3'
-
-networks:
-  backend:
-    driver: bridge
-
 services:
-  php-fpm:
-    image: pengpeng/myphp-fpm:1.2
-    # build:
-    #   context: ./php-fpm
-    #   args:
-    #     - LARADOCK_PHP_VERSION=7.1
-    #     - INSTALL_INTL=true
-    #     - INSTALL_SSH2=true
-    #     - INSTALL_SOAP=true
-    #     - INSTALL_AMQP=true
-    #     - INSTALL_XSL=true
-    #     - INSTALL_GMP=true
-    #     - INSTALL_BCMATH=true
-    #     - INSTALL_PHPREDIS=true
-    #     - INSTALL_MYSQLI=true
-    #     - INSTALL_SWOOLE=true
-    #     - INSTALL_SEASLOG=true
-    #     - INSTALL_IMAGEMAGICK=true
-    #     - INSTALL_IMAGE_OPTIMIZERS=true
-    #     - INSTALL_IONCUBE=true
-    #     - ADDITIONAL_LOCALES="es_ES.UTF-8 fr_FR.UTF-8"
-    volumes:
-      - ./php-fpm/php.ini:/usr/local/etc/php/php.ini
-      - ${APP_CODE_PATH_HOST}:/var/www
-      - ./logs/php-fpm:/var/log/www
-    expose:
-      - "9000"
-    networks:
-      - backend
-
-  nginx:
-    image: harbor.youhaodongxi.com/php/sht-dev-nginx:0.1
-    volumes: 
-      - ${APP_CODE_PATH_HOST}:/var/www
-      - ./logs/nginx/:/var/log/nginx
-      - ./sites/:/etc/nginx/sites-available
-    ports:
-      - 80:80
-      - 443:443
-    depends_on:
-      - php-fpm
-    networks:
-      - backend
-
-  redis:
-      image: redis:latest
-      ports:
-        - "6379:6379"
-      networks:
-        - backend
+   db:
+     image: mysql:5.7
+     volumes:
+       - db_data:/var/lib/mysql
+     restart: always
+     environment:
+       MYSQL_ROOT_PASSWORD: AcMkuyYei1*d    # 在这里输入你要设置的mysql密码
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: pengpeng
+       MYSQL_PASSWORD: whpAcMkuyYei1*d123
+   wordpress:
+     depends_on:
+       - db
+     image: wordpress:latest
+     volumes:
+        - wp_site:/var/www/html     # 定义卷后，compose down之类的操作不会导致你的文章等数据丢失
+     expose:
+       - 80
+     restart: always
+     environment:
+       VIRTUAL_HOST: 47.105.74.81
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_USER: pengpeng
+       WORDPRESS_DB_PASSWORD: whpAcMkuyYei1*d123
+   nginx-proxy:
+     image: jwilder/nginx-proxy
+     container_name: nginx-proxy
+     restart: always
+     ports:
+       - "80:80"
+       - "443:443"
+     volumes:
+       - /var/run/docker.sock:/tmp/docker.sock:ro   # docker.sock是docker守护进程默认监听的Unix域套接字，容器进程通过它与守护进程进行通信。以后添加新的站点时，nginx将会自动发现并重启服务
+       - nginx_certs:/etc/nginx/certs:ro    # nginx的证书目录，:ro指定为只读
+volumes:
+    db_data:
+    wp_site:
+    nginx_certs:
+networks:
+   default:
+     external:
+       name: nginx-proxy
